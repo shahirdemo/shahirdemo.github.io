@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Simple Website</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #111827;
+      color: #e5e7eb;
+      text-align: center;
+    }
+
+    header {
+      padding: 40px 20px;
+      background: #1f2933;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    p {
+      opacity: 0.8;
+    }
+
+    button {
+      margin-top: 25px;
+      padding: 12px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      background: #22c55e;
+      color: #020617;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #16a34a;
+    }
+
+    footer {
+      margin-top: 50px;
+      padding: 15px;
+      font-size: 14px;
+      opacity: 0.6;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>My Simple Website</h1>
+    <p>Made using only HTML, CSS, and JavaScript</p>
+    <button onclick="sayHello()">Click Me</button>
+  </header>
+
+  <footer>
+    © 2025
+  </footer>
+
+  <script>
+    function sayHello() {
+      alert("Your simple website works.");
+    }
+  </script>
+
+</body>
+</html>
