@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Expense Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    input {
+      width: 100%;
+      max-width: 300px;
+      padding: 12px;
+      margin: 6px 0;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+    }
+
+    button {
+      padding: 12px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background: #22c55e;
+      color: #020617;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin-top: 20px;
+    }
+
+    li {
+      background: #020617;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .amount {
+      font-weight: bold;
+      color: #facc15;
+    }
+
+    .delete {
+      background: #ef4444;
+      border: none;
+      color: white;
+      border-radius: 6px;
+      padding: 5px 8px;
+      cursor: pointer;
+    }
+
+    .total {
+      margin-top: 15px;
+      font-size: 18px;
+    }
+
+    a {
+      color: #38bdf8;
+      text-decoration: none;
+      display: block;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Expense Awareness</h1>
+  <p>Log money you spend. No pressure.</p>
+
+  <input id="amount" type="number" placeholder="Amount (₹)" />
+  <input id="reason" placeholder="Reason (food, game, travel…)" />
+
+  <button onclick="addExpense()">Add Expense</button>
+
+  <div class="total">
+    Total Spent: ₹<span id="total">0</span>
+  </div>
+
+  <ul id="list"></ul>
+
+  <a href="index.html">← Back to Home</a>
+
+  <script>
+    let expenses = JSON.parse(localStorage.getItem("expenses")) || [];
+
+    const list = document.getElementById("list");
+    const totalEl = document.getElementById("total");
+
+    function save() {
+      localStorage.setItem("expenses", JSON.stringify(expenses));
+    }
+
+    function render() {
+      list.innerHTML = "";
+      let total = 0;
+
+      expenses.forEach((e, i) => {
+        total += e.amount;
+
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <span>${e.reason}</span>
+          <span class="amount">₹${e.amount}</span>
+          <button class="delete" onclick="removeExpense(${i})">✖</button>
+        `;
+        list.appendChild(li);
+      });
+
+      totalEl.textContent = total;
+    }
+
+    function addExpense() {
+      const amount = Number(document.getElementById("amount").value);
+      const reason = document.getElementById("reason").value.trim();
+
+      if (!amount || !reason) return;
+
+      expenses.push({ amount, reason });
+      save();
+      render();
+
+      document.getElementById("amount").value = "";
+      document.getElementById("reason").value = "";
+    }
+
+    function removeExpense(index) {
+      expenses.splice(index, 1);
+      save();
+      render();
+    }
+
+    render();
+  </script>
+
+</body>
+</html>
