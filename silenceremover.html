@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Auto Silence Remover & Voice Enhancer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: radial-gradient(circle at top, #0f172a, #020617);
+  font-family: "Segoe UI", sans-serif;
+  color: white;
+}
+
+/* HOME BUTTON */
+.home-btn {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  text-decoration: none;
+  color: white;
+  font-size: 14px;
+  backdrop-filter: blur(10px);
+  transition: 0.2s;
+}
+
+.home-btn:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+.card {
+  width: 100%;
+  max-width: 520px;
+  padding: 30px;
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(15px);
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+}
+
+h1 {
+  text-align: center;
+  margin-top: 0;
+}
+
+p {
+  text-align: center;
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+.upload {
+  text-align: center;
+  margin: 20px 0;
+}
+
+input[type=file] { display: none; }
+
+label {
+  padding: 12px 18px;
+  border: 1px dashed rgba(255,255,255,0.4);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.control {
+  margin: 18px 0;
+}
+
+.control span {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+input[type=range] {
+  width: 100%;
+}
+
+button {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: bold;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: black;
+}
+
+audio {
+  width: 100%;
+  margin-top: 20px;
+}
+
+.footer {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 12px;
+  opacity: 0.6;
+}
+</style>
+</head>
+
+<body>
+
+<!-- HOME BUTTON -->
+<a href="index.html" class="home-btn">🏠 Home</a>
+
+<div class="card">
+  <h1>🎧 Voice Cleaner</h1>
+  <p>Remove silence + enhance voice automatically</p>
+
+  <div class="upload">
+    <label for="file">📂 Choose Audio File</label>
+    <input type="file" id="file" accept="audio/*">
+  </div>
+
+  <div class="control">
+    <span>
+      <strong>Silence Sensitivity</strong>
+      <span id="mode">Medium</span>
+    </span>
+    <input type="range" id="threshold" min="0.01" max="0.05" step="0.005" value="0.025">
+  </div>
+
+  <button onclick="start()">Process Audio</button>
+
+  <audio id="player" controls></audio>
+
+  <div class="footer">Private • No Uploads • Browser Only</div>
+</div>
+
+<script>
+const slider = document.getElementById("threshold");
+const modeText = document.getElementById("mode");
+
+slider.oninput = () => {
+  modeText.textContent =
+    slider.value < 0.02 ? "High" :
+    slider.value < 0.035 ? "Medium" : "Low";
+};
+
+async function start() {
+  const file = document.getElementById("file").files[0];
+  if (!file) return alert("Select an audio file");
+
+  const ctx = new AudioContext();
+  const buffer = await ctx.decodeAudioData(await file.arrayBuffer());
+
+  const cleaned = removeSilence(buffer, slider.value);
+  const enhanced = await enhanceVoice(cleaned);
+
+  const blob = bufferToWav(enhanced);
+  document.getElementById("player").src = URL.createObjectURL(blob);
+}
+
+function removeSilence(buffer, threshold) {
+  const data = buffer.getChannelData(0);
+  const minSilence = buffer.sampleRate * 0.15;
+
+  let result = [];
+  let silence = 0;
+
+  for (let s of data) {
+    if (Math.abs(s) < threshold) {
+      silence++;
+      if (silence < minSilence) result.push(s);
+    } else {
+      silence = 0;
+      result.push(s);
+    }
+  }
+
+  const out = new AudioContext().createBuffer(1, result.length, buffer.sampleRate);
+  out.getChannelData(0).set(result);
+  return out;
+}
+
+async function enhanceVoice(buffer) {
+  const ctx = new OfflineAudioContext(1, buffer.length, buffer.sampleRate);
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+
+  const highPass = ctx.createBiquadFilter();
+  highPass.type = "highpass";
+  highPass.frequency.value = 90;
+
+  const clarity = ctx.createBiquadFilter();
+  clarity.type = "peaking";
+  clarity.frequency.value = 3000;
+  clarity.gain.value = 4;
+  clarity.Q.value = 1;
+
+  const compressor = ctx.createDynamicsCompressor();
+  compressor.threshold.value = -24;
+  compressor.ratio.value = 6;
+  compressor.knee.value = 30;
+
+  src
+    .connect(highPass)
+    .connect(clarity)
+    .connect(compressor)
+    .connect(ctx.destination);
+
+  src.start();
+  return await ctx.startRendering();
+}
+
+function bufferToWav(buffer) {
+  const len = buffer.length * 2 + 44;
+  const ab = new ArrayBuffer(len);
+  const view = new DataView(ab);
+  let pos = 0;
+
+  const write = s => [...s].forEach(c => view.setUint8(pos++, c.charCodeAt()));
+
+  write("RIFF");
+  view.setUint32(pos, len - 8, true); pos += 4;
+  write("WAVEfmt ");
+  view.setUint32(pos, 16, true); pos += 4;
+  view.setUint16(pos, 1, true); pos += 2;
+  view.setUint16(pos, 1, true); pos += 2;
+  view.setUint32(pos, buffer.sampleRate, true); pos += 4;
+  view.setUint32(pos, buffer.sampleRate * 2, true); pos += 4;
+  view.setUint16(pos, 2, true); pos += 2;
+  view.setUint16(pos, 16, true); pos += 2;
+  write("data");
+  view.setUint32(pos, buffer.length * 2, true); pos += 4;
+
+  buffer.getChannelData(0).forEach(s => {
+    view.setInt16(pos, s * 0x7fff, true);
+    pos += 2;
+  });
+
+  return new Blob([ab], { type: "audio/wav" });
+}
+</script>
+
+</body>
+</html>
