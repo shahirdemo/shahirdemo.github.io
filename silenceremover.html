@@ -2,22 +2,21 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Auto Silence Remover & Voice Enhancer</title>
+<title>Voice Cleaner</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body {
   margin: 0;
   min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   background: radial-gradient(circle at top, #0f172a, #020617);
   font-family: "Segoe UI", sans-serif;
   color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-/* HOME BUTTON */
 .home-btn {
   position: fixed;
   top: 20px;
@@ -28,13 +27,7 @@ body {
   border: 1px solid rgba(255,255,255,0.2);
   text-decoration: none;
   color: white;
-  font-size: 14px;
   backdrop-filter: blur(10px);
-  transition: 0.2s;
-}
-
-.home-btn:hover {
-  background: rgba(255,255,255,0.2);
 }
 
 .card {
@@ -48,10 +41,7 @@ body {
   box-shadow: 0 25px 60px rgba(0,0,0,0.6);
 }
 
-h1 {
-  text-align: center;
-  margin-top: 0;
-}
+h1 { text-align: center; margin-top: 0; }
 
 p {
   text-align: center;
@@ -83,9 +73,7 @@ label {
   font-size: 14px;
 }
 
-input[type=range] {
-  width: 100%;
-}
+input[type=range] { width: 100%; }
 
 button {
   width: 100%;
@@ -103,24 +91,16 @@ audio {
   width: 100%;
   margin-top: 20px;
 }
-
-.footer {
-  margin-top: 16px;
-  text-align: center;
-  font-size: 12px;
-  opacity: 0.6;
-}
 </style>
 </head>
 
 <body>
 
-<!-- HOME BUTTON -->
 <a href="index.html" class="home-btn">🏠 Home</a>
 
 <div class="card">
   <h1>🎧 Voice Cleaner</h1>
-  <p>Remove silence + enhance voice automatically</p>
+  <p>Remove silence & enhance voice naturally</p>
 
   <div class="upload">
     <label for="file">📂 Choose Audio File</label>
@@ -135,11 +115,9 @@ audio {
     <input type="range" id="threshold" min="0.01" max="0.05" step="0.005" value="0.025">
   </div>
 
-  <button onclick="start()">Process Audio</button>
+  <button onclick="process()">Process Audio</button>
 
   <audio id="player" controls></audio>
-
-  <div class="footer">Private • No Uploads • Browser Only</div>
 </div>
 
 <script>
@@ -152,7 +130,7 @@ slider.oninput = () => {
     slider.value < 0.035 ? "Medium" : "Low";
 };
 
-async function start() {
+async function process() {
   const file = document.getElementById("file").files[0];
   if (!file) return alert("Select an audio file");
 
@@ -166,9 +144,12 @@ async function start() {
   document.getElementById("player").src = URL.createObjectURL(blob);
 }
 
+/* ---------- SILENCE REMOVAL (SMOOTH) ---------- */
 function removeSilence(buffer, threshold) {
   const data = buffer.getChannelData(0);
-  const minSilence = buffer.sampleRate * 0.15;
+  const sampleRate = buffer.sampleRate;
+  const minSilence = sampleRate * 0.15;
+  const fadeSamples = sampleRate * 0.01;
 
   let result = [];
   let silence = 0;
@@ -183,11 +164,18 @@ function removeSilence(buffer, threshold) {
     }
   }
 
-  const out = new AudioContext().createBuffer(1, result.length, buffer.sampleRate);
+  // fade in/out
+  for (let i = 0; i < fadeSamples && i < result.length; i++) {
+    result[i] *= i / fadeSamples;
+    result[result.length - 1 - i] *= i / fadeSamples;
+  }
+
+  const out = new AudioContext().createBuffer(1, result.length, sampleRate);
   out.getChannelData(0).set(result);
   return out;
 }
 
+/* ---------- VOICE ENHANCEMENT (NATURAL) ---------- */
 async function enhanceVoice(buffer) {
   const ctx = new OfflineAudioContext(1, buffer.length, buffer.sampleRate);
   const src = ctx.createBufferSource();
@@ -195,24 +183,75 @@ async function enhanceVoice(buffer) {
 
   const highPass = ctx.createBiquadFilter();
   highPass.type = "highpass";
-  highPass.frequency.value = 90;
+  highPass.frequency.value = 80;
 
-  const clarity = ctx.createBiquadFilter();
-  clarity.type = "peaking";
-  clarity.frequency.value = 3000;
-  clarity.gain.value = 4;
-  clarity.Q.value = 1;
+  const lowMidCut = ctx.createBiquadFilter();
+  lowMidCut.type = "peaking";
+  lowMidCut.frequency.value = 250;
+  lowMidCut.gain.value = -2;
+  lowMidCut.Q.value = 1;
+
+  const presence = ctx.createBiquadFilter();
+  presence.type = "peaking";
+  presence.frequency.value = 2800;
+  presence.gain.value = 2;
+  presence.Q.value = 1;
 
   const compressor = ctx.createDynamicsCompressor();
-  compressor.threshold.value = -24;
-  compressor.ratio.value = 6;
-  compressor.knee.value = 30;
+  compressor.threshold.value = -20;
+  compressor.knee.value = 20;
+  compressor.ratio.value = 3;
+  compressor.attack.value = 0.01;
+  compressor.release.value = 0.3;
+
+  const gain = ctx.createGain();
+  gain.gain.value = 0.9;
 
   src
     .connect(highPass)
-    .connect(clarity)
+    .connect(lowMidCut)
+    .connect(presence)
     .connect(compressor)
+    .connect(gain)
     .connect(ctx.destination);
+
+  src.start();
+  return await ctx.startRendering();
+}
+
+/* ---------- WAV EXPORT ---------- */
+function bufferToWav(buffer) {
+  const len = buffer.length * 2 + 44;
+  const ab = new ArrayBuffer(len);
+  const view = new DataView(ab);
+  let pos = 0;
+
+  const write = s => [...s].forEach(c => view.setUint8(pos++, c.charCodeAt()));
+
+  write("RIFF");
+  view.setUint32(pos, len - 8, true); pos += 4;
+  write("WAVEfmt ");
+  view.setUint32(pos, 16, true); pos += 4;
+  view.setUint16(pos, 1, true); pos += 2;
+  view.setUint16(pos, 1, true); pos += 2;
+  view.setUint32(pos, buffer.sampleRate, true); pos += 4;
+  view.setUint32(pos, buffer.sampleRate * 2, true); pos += 4;
+  view.setUint16(pos, 2, true); pos += 2;
+  view.setUint16(pos, 16, true); pos += 2;
+  write("data");
+  view.setUint32(pos, buffer.length * 2, true); pos += 4;
+
+  buffer.getChannelData(0).forEach(s => {
+    view.setInt16(pos, s * 0x7fff, true);
+    pos += 2;
+  });
+
+  return new Blob([ab], { type: "audio/wav" });
+}
+</script>
+
+</body>
+</html>    .connect(ctx.destination);
 
   src.start();
   return await ctx.startRendering();
