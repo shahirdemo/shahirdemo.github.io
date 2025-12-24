@@ -1,81 +1,160 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Simple Website</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>Minimal Tools</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #111827;
-      color: #e5e7eb;
-      text-align: center;
-    }
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
-    header {
-      padding: 40px 20px;
-      background: #1f2933;
-    }
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-    h1 {
-      margin-bottom: 10px;
-    }
+body {
+  font-family: 'Inter', sans-serif;
+  background: #0b0f14;
+  color: #e6e6e6;
+  line-height: 1.6;
+}
 
-    p {
-      opacity: 0.8;
-    }
+/* HEADER */
+header {
+  padding: 80px 20px 60px;
+  text-align: center;
+}
 
-    button {
-      margin-top: 25px;
-      padding: 12px 20px;
-      font-size: 16px;
-      border: none;
-      border-radius: 6px;
-      background: #22c55e;
-      color: #020617;
-      cursor: pointer;
-    }
+header h1 {
+  font-size: 48px;
+  font-weight: 600;
+  letter-spacing: -1px;
+}
 
-    button:hover {
-      background: #16a34a;
-    }
+header h1 span {
+  color: #7cf5c2;
+}
 
-    footer {
-      margin-top: 50px;
-      padding: 15px;
-      font-size: 14px;
-      opacity: 0.6;
-    }
-  </style>
+header p {
+  margin-top: 12px;
+  font-size: 16px;
+  opacity: 0.65;
+}
+
+/* CONTAINER */
+.container {
+  max-width: 1100px;
+  margin: auto;
+  padding: 0 20px 60px;
+}
+
+/* GRID */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 28px;
+}
+
+/* CARD */
+.card {
+  background: #11161d;
+  border-radius: 14px;
+  padding: 28px;
+  transition: all 0.25s ease;
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  background: #141a23;
+}
+
+.card h3 {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.card p {
+  font-size: 14px;
+  opacity: 0.6;
+  margin-bottom: 22px;
+}
+
+.card a {
+  text-decoration: none;
+  font-size: 14px;
+  color: #7cf5c2;
+  font-weight: 500;
+}
+
+.card a:hover {
+  text-decoration: underline;
+}
+
+/* FOOTER */
+footer {
+  text-align: center;
+  padding: 30px 20px;
+  font-size: 13px;
+  opacity: 0.4;
+}
+</style>
 </head>
 
 <body>
 
-  <header>
-    <h1>My Simple Website</h1>
-    <p>Made using only HTML, CSS, and JavaScript</p>
-    <button onclick="sayHello()">Click Me</button>
-  </header>
+<header>
+  <h1><span>Toolxy</span></h1>
+  <p>Minimal web tools. No noise. Just function.</p>
+</header>
 
-  <footer>
-    © 2025
-  </footer>
+<div class="container">
+  <div class="grid">
 
-  <script>
-    function sayHello() {
-      alert("Your simple website works.");
-    }
-  </script>
-<a href="about.html">Go to About</a><br><br>
-<a href="contact.html">Go to Contact</a>
-<a href="word-counter.html">Word Counter</a>
-<a href="text-cleaner.html">Text Cleaner</a>
-<a href="notes.html">Notes & To-Do</a>
-<a href="focus.html">Focus Mode</a>
-<a href="expense.html">Expense Tracker</a>
-<a href="reaction-test.html">reaction-test</a>
-<a href="silenceremover.html">silenceremover</a>
+    <div class="card">
+      <h3>Word Counter</h3>
+      <p>Instant word and character analysis.</p>
+      <a href="word-counter.html">Open →</a>
+    </div>
+
+    <div class="card">
+      <h3>Text Cleaner</h3>
+      <p>Remove clutter and clean text.</p>
+      <a href="text-cleaner.html">Open →</a>
+    </div>
+
+    <div class="card">
+      <h3>Notes & To-Do</h3>
+      <p>Simple, distraction-free notes.</p>
+      <a href="notes.html">Open →</a>
+    </div>
+
+    <div class="card">
+      <h3>Focus Mode</h3>
+      <p>Stay focused with timed sessions.</p>
+      <a href="focus.html">Open →</a>
+    </div>
+
+    <div class="card">
+      <h3>Expense Tracker</h3>
+      <p>Track spending without friction.</p>
+      <a href="expense.html">Open →</a>
+    </div>
+
+    <div class="card">
+      <h3>Silence Remover</h3>
+      <p>Automatically remove silent audio.</p>
+      <a href="silenceremover.html">Open →</a>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  © 2025 Toolxy — Built with intent
+</footer>
+
 </body>
 </html>
