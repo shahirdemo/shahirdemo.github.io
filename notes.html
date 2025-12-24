@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Notes</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet">
+<style>
+body {
+  background:#0b0f14;
+  color:#e6e6e6;
+  font-family:Inter;
+  display:flex;
+  justify-content:center;
+  padding:40px;
+}
+
+.card {
+  width:100%;
+  max-width:500px;
+  background:#11161d;
+  padding:28px;
+  border-radius:18px;
+}
+
+input {
+  width:100%;
+  padding:12px;
+  border-radius:12px;
+  border:none;
+  margin-bottom:10px;
+}
+
+ul { list-style:none; padding:0; }
+
+li {
+  background:#0b0f14;
+  padding:12px;
+  border-radius:10px;
+  margin-bottom:8px;
+}
+
+button {
+  background:#7cf5c2;
+  border:none;
+  padding:10px;
+  border-radius:10px;
+  cursor:pointer;
+}
+
+a { color:#7cf5c2; text-decoration:none; }
+</style>
+</head>
+
+<body>
+<div class="card">
+  <h2>Notes</h2>
+  <input id="i" placeholder="Write something…" />
+  <button onclick="add()">Add</button>
+  <ul id="list"></ul>
+  <a href="index.html">← Back</a>
+</div>
+
+<script>
+const list=document.getElementById("list");
+let notes=JSON.parse(localStorage.getItem("n"))||[];
+
+function save(){localStorage.setItem("n",JSON.stringify(notes));}
+function draw(){
+  list.innerHTML="";
+  notes.forEach(n=>{
+    let li=document.createElement("li");
+    li.textContent=n;
+    list.appendChild(li);
+  });
+}
+function add(){
+  let v=i.value.trim();
+  if(!v)return;
+  notes.push(v); i.value="";
+  save(); draw();
+}
+draw();
+</script>
+</body>
+</html>

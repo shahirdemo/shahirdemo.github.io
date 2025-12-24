@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Voice Cleaner — Grip</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+body{
+  font-family:Inter,sans-serif;
+  background:#0b0f14;
+  color:#e6e6e6;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+}
+
+.card{
+  width:100%;
+  max-width:520px;
+  background:#11161d;
+  padding:32px;
+  border-radius:18px;
+}
+
+h2{margin-bottom:6px}
+p{font-size:14px;opacity:.6}
+
+label{
+  display:block;
+  padding:14px;
+  margin:18px 0;
+  background:#0b0f14;
+  border-radius:12px;
+  text-align:center;
+  cursor:pointer;
+}
+
+input[type=file]{display:none}
+input[type=range]{width:100%;margin:10px 0}
+
+button{
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:12px;
+  background:#7cf5c2;
+  color:#0b0f14;
+  font-weight:600;
+  cursor:pointer;
+}
+
+audio{width:100%;margin-top:20px}
+
+a{
+  display:inline-block;
+  margin-top:16px;
+  color:#7cf5c2;
+  text-decoration:none;
+  font-size:14px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+  <h2>Voice Cleaner</h2>
+  <p>Remove silence smoothly. Enhance voice safely.</p>
+
+  <label>
+    Choose audio file
+    <input type="file" id="file" accept="audio/*">
+  </label>
+
+  <p style="font-size:13px">Silence Sensitivity</p>
+  <input type="range" id="threshold" min="0.008" max="0.03" step="0.002" value="0.015">
+
+  <button onclick="processAudio()">Process Audio</button>
+
+  <audio id="player" controls></audio>
+
+  <a href="index.html">← Back</a>
+</div>
+
+<script>
+async function processAudio(){
+  const file = document.getElementById("file").files[0];
+  if(!file) return alert("Select an audio file");
+
+  const ctx = new AudioContext();
+  const buffer = await ctx.decodeAudioData(await file.arrayBuffer());
+
+  const cleaned = removeSilence(buffer, threshold.value);
+  const enhanced = await enhanceVoice(cleaned);
+
+  clamp(enhanced);
+
+  const wav = bufferToWav(enhanced);
+  player.src = URL.createObjectURL(wav);
+}
+
+/* ---- SILENCE REMOVAL WITH FADES (NO CLICKS) ---- */
+function removeSilence(buffer, threshold){
+  const input = buffer.getChannelData(0);
+  const sr = buffer.sampleRate;
+
+  const minSilence = sr * 0.2;
+  const fade = Math.floor(sr * 0.005); // 5ms
+
+  let out = [];
+  let silent = 0;
+
+  for(let i=0;i<input.length;i++){
+    const s = input[i];
+
+    if(Math.abs(s) < threshold){
+      silent++;
+      if(silent < minSilence) out.push(s);
+    } else {
+      silent = 0;
+      out.push(s);
+    }
+  }
+
+  // Fade in/out
+  for(let i=0;i<fade;i++){
+    if(out[i] !== undefined) out[i] *= i / fade;
+    const e = out.length - 1 - i;
+    if(out[e] !== undefined) out[e] *= i / fade;
+  }
+
+  const o = new AudioContext().createBuffer(1, out.length, sr);
+  o.getChannelData(0).set(out);
+  return o;
+}
+
+/* ---- SAFE VOICE ENHANCEMENT ---- */
+async function enhanceVoice(buffer){
+  const ctx = new OfflineAudioContext(1, buffer.length, buffer.sampleRate);
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+
+  const highPass = ctx.createBiquadFilter();
+  highPass.type = "highpass";
+  highPass.frequency.value = 80;
+
+  const presence = ctx.createBiquadFilter();
+  presence.type = "peaking";
+  presence.frequency.value = 2500;
+  presence.gain.value = 2.5;
+  presence.Q.value = 1;
+
+  const compressor = ctx.createDynamicsCompressor();
+  compressor.threshold.value = -28;
+  compressor.ratio.value = 3;
+  compressor.attack.value = 0.02;
+  compressor.release.value = 0.25;
+
+  src
+    .connect(highPass)
+    .connect(presence)
+    .connect(compressor)
+    .connect(ctx.destination);
+
+  src.start();
+  return await ctx.startRendering();
+}
+
+/* ---- CLAMP TO PREVENT DIGITAL CRACKLE ---- */
+function clamp(buffer){
+  const d = buffer.getChannelData(0);
+  for(let i=0;i<d.length;i++){
+    d[i] = Math.max(-0.98, Math.min(0.98, d[i]));
+  }
+}
+
+/* ---- WAV EXPORT ---- */
+function bufferToWav(buffer){
+  const len = buffer.length * 2 + 44;
+  const ab = new ArrayBuffer(len);
+  const view = new DataView(ab);
+  let pos = 0;
+
+  const write = s => [...s].forEach(c => view.setUint8(pos++, c.charCodeAt()));
+
+  write("RIFF");
+  view.setUint32(pos, len - 8, true); pos += 4;
+  write("WAVEfmt ");
+  view.setUint32(pos, 16, true); pos += 4;
+  view.setUint16(pos, 1, true); pos += 2;
+  view.setUint16(pos, 1, true); pos += 2;
+  view.setUint32(pos, buffer.sampleRate, true); pos += 4;
+  view.setUint32(pos, buffer.sampleRate * 2, true); pos += 4;
+  view.setUint16(pos, 2, true); pos += 2;
+  view.setUint16(pos, 16, true); pos += 2;
+  write("data");
+  view.setUint32(pos, buffer.length * 2, true); pos += 4;
+
+  buffer.getChannelData(0).forEach(s=>{
+    view.setInt16(pos, s * 0x7fff, true);
+    pos += 2;
+  });
+
+  return new Blob([ab], {type:"audio/wav"});
+}
+</script>
+
+</body>
+</html>
